@@ -1,166 +1,148 @@
-#include <SFML\Graphics.hpp>
-#include <SFML\Window.hpp>
+#include <SFML/Graphics.hpp>
+#include <SFML/System.hpp>
 #include <cmath>
 #include <iostream>
-struct Eye
-{
-    sf::ConvexShape white;
-    sf::ConvexShape black;
-    sf::Vector2f position;
-    float rotation = 0;
+
+float toGrees(float radians){ return float(double(radians) * 180.0 / M_PI); }
+sf::Vector2f relativePos(sf::Vector2f posRoot, sf::Vector2f absolPos){ return absolPos-posRoot; }
+
+constexpr float HeightEye = 100;			
+constexpr float WidthEye = 70;			 
+constexpr float RadiusPupil = 15;		 
+constexpr float DistBetEyeAndPupil = 20; 
+constexpr float DistanceBetweenEye = 50; 
+constexpr float Points = 100;			 
+constexpr unsigned WINDOW_WIDTH = 800;   
+constexpr unsigned WINDOW_HEIGHT = 600; 
+const sf::Color ColorApple = sf::Color(0xFF, 0x0, 0x0);  
+const sf::Color ColorPupil = sf::Color(0x00, 0x0, 0x0);  
+
+struct Eye{
+	sf::ConvexShape eyeApple;
+	sf::CircleShape eyePupil; 
+	sf::Vector2f position;	
+
+	void init(sf::Vector2f position,sf::Vector2f size);
+	void draw(sf::RenderWindow &window);
+	void update(sf::Vector2f &mousePosition);
+private:
+	float calcAngle(sf::Vector2f relativeMousePosition);
+	int mouseOnEye(sf::Vector2f relativeMousePosition, float angle);
 };
 
-sf::Vector2f toEucledian(float x, float y, float angle)
+int Eye::mouseOnEye(sf::Vector2f relativeMousePosition, float angle)
 {
-    return {x * std::cos(angle), y * std::sin(angle)};
+	float x1 = (HeightEye-DistBetEyeAndPupil) * std::cos(angle);
+	float x2 = (HeightEye-DistBetEyeAndPupil) * std::cos(angle+M_PI);
+	float y1 = (HeightEye-DistBetEyeAndPupil) * std::sin(angle);
+	float y2 = (WidthEye-DistBetEyeAndPupil) * std::sin(angle+M_PI);
+
+	if ((std::max(x1, x2) >= relativeMousePosition.x) &&
+		(std::min(x1, x2) <= relativeMousePosition.x) &&
+		(std::max(y1, y2) >= relativeMousePosition.y) && 
+		(std::min(y1, y2) <= relativeMousePosition.y))
+	{return 1;}
+	else
+	{return 0;}
 }
 
-float checkCursorInEye(const sf::Vector2f &mousePosition, const sf::Vector2f &position, float x, float y)
+float Eye::calcAngle(sf::Vector2f relativeMousePosition)
 {
-    return ((std::pow((mousePosition.x - position.x) / x, 2)) + std::pow((mousePosition.y - position.y) / y, 2));
+	const sf::Vector2f modifiedDelta = sf::Vector2f({relativeMousePosition.x / (WidthEye-DistBetEyeAndPupil), relativeMousePosition.y / (HeightEye-DistBetEyeAndPupil)});
+	return std::atan2(modifiedDelta.y, modifiedDelta.x);
+};
+
+void Eye::update(sf::Vector2f &mousePosition)
+{
+	const sf::Vector2f delta = relativePos(this->position, mousePosition);
+	float angle = calcAngle(delta);
+	if (0 == this->mouseOnEye(delta, angle))
+	{
+		sf::Vector2f pepe = sf::Vector2f{
+			(WidthEye-DistBetEyeAndPupil) * std::cos(angle),
+			(HeightEye-DistBetEyeAndPupil) * std::sin(angle)
+		};
+		this->eyePupil.setPosition(this->position + pepe);
+	}
+	else
+	{
+		this->eyePupil.setPosition(mousePosition);
+	}
 }
 
-void updateLeftEye(Eye &leftEye)
+void Eye::draw(sf::RenderWindow &window)
 {
-    const sf::Vector2f rotationRadius = {30.f, 50.f};
-
-    const sf::Vector2f whiteLeftEyeOffset = toEucledian(rotationRadius.x, rotationRadius.y, leftEye.rotation);
-    leftEye.black.setPosition(leftEye.position + whiteLeftEyeOffset);
-}
-void updateRightEye(Eye &rightEye)
-{
-    const sf::Vector2f rotationRadius = {30.f, 50.f};
-
-    const sf::Vector2f whiteRightEyeOffset = toEucledian(rotationRadius.x, rotationRadius.y, rightEye.rotation);
-    rightEye.black.setPosition(rightEye.position + whiteRightEyeOffset);
+	window.draw(eyeApple);
+	window.draw(eyePupil);
 }
 
-void initEye(Eye &leftEye, Eye &rightEye)
+void Eye::init(sf::Vector2f position,sf::Vector2f size)
 {
-    sf::Vector2f whiteRadius = {50.f, 100.f};
-    sf::Vector2f blackRadius = {10.f, 20.f};
-    constexpr int pointCount = 200;
-
-    leftEye.position = {300, 300};
-    rightEye.position = {500, 300};
-
-    leftEye.white.setFillColor(sf::Color(255, 255, 255));
-    leftEye.white.setPointCount(pointCount);
-    leftEye.white.setPosition(leftEye.position);
-    rightEye.white.setFillColor(sf::Color(255, 255, 255));
-    rightEye.white.setPointCount(pointCount);
-    rightEye.white.setPosition(rightEye.position);
-    for (int pointNo = 0; pointNo < pointCount; ++pointNo)
-    {
-        float angle = float(2 * M_PI * pointNo) / float(pointCount);
-        sf::Vector2f point = {
-            whiteRadius.x * std::sin(angle),
-            whiteRadius.y * std::cos(angle)};
-        leftEye.white.setPoint(pointNo, point);
-        rightEye.white.setPoint(pointNo, point);
-    }
-
-    leftEye.black.setPointCount(pointCount);
-    leftEye.black.setFillColor(sf::Color(0, 0, 0));
-    rightEye.black.setPointCount(pointCount);
-    rightEye.black.setFillColor(sf::Color(0, 0, 0));
-    for (int pointNo = 0; pointNo < pointCount; ++pointNo)
-    {
-        float angle = float(2 * M_PI * pointNo) / float(pointCount);
-        sf::Vector2f point = {
-            blackRadius.x * std::sin(angle),
-            blackRadius.y * std::cos(angle)};
-        leftEye.black.setPoint(pointNo, point);
-        rightEye.black.setPoint(pointNo, point);
-    }
+	this->eyeApple.setPosition(position); 
+	this->position = position;		
+	this->eyeApple.setPointCount(Points); 
+	for (int pointNo = 0; pointNo < Points; ++pointNo)
+	{
+		float angle = float(2 * M_PI * pointNo) / float(Points);	 
+		sf::Vector2f point = sf::Vector2f{							 
+			size.x * std::cos(angle),  
+			size.y * std::sin(angle)}; 
+		this->eyeApple.setPoint(pointNo, point);
+	}
+	this->eyePupil.setRadius(RadiusPupil);
+	this->eyePupil.setOrigin(RadiusPupil, RadiusPupil);									  
+	this->eyePupil.setPosition(position);
+	this->eyeApple.setFillColor(ColorApple);
+	this->eyePupil.setFillColor(ColorPupil);
 }
 
-void onMouseMove(const sf::Event::MouseMoveEvent &event, sf::Vector2f &mousePosition)
+void onMouseMove(const sf::Event::MouseMoveEvent &event, sf::Vector2f &mousePosition) 
 {
-    std::cout << "mouse x=" << event.x << ", y=" << event.y << std::endl;
-
-    mousePosition = {float(event.x), float(event.y)};
+	mousePosition = {float(event.x), float(event.y)}; 
 }
 
-void pollEvents(sf::RenderWindow &window, sf::Vector2f &mousePosition)
+void pollEvents(sf::RenderWindow &window, sf::Vector2f &mousePosition) 
 {
-    sf::Event event;
-    while (window.pollEvent(event))
-    {
-        switch (event.type)
-        {
-        case sf::Event::Closed:
-            window.close();
-            break;
-        case sf::Event::MouseMoved:
-            onMouseMove(event.mouseMove, mousePosition);
-            break;
-        default:
-            break;
-        }
-    }
-}
-
-void update(const sf::Vector2f &mousePosition, Eye &leftEye, Eye &rightEye)
-{
-    const sf::Vector2f whiteRadius = {10.f, 30.f};
-    const sf::Vector2f blackRadius = {4.f, 10.f};
-    const float isInLeftEye = checkCursorInEye(mousePosition, leftEye.white.getPosition(), whiteRadius.x, whiteRadius.y);
-    const float isInRightEye = checkCursorInEye(mousePosition, rightEye.white.getPosition(), whiteRadius.x, whiteRadius.y);
-
-    if (isInLeftEye > 1.f)
-    {
-        const sf::Vector2f leftEyeDelta = mousePosition - leftEye.position;
-        leftEye.rotation = atan2(leftEyeDelta.y, leftEyeDelta.x);
-        updateLeftEye(leftEye);
-    }
-    else
-    {
-        leftEye.black.setPosition(mousePosition);
-    }
-    if (isInRightEye > 1.f)
-    {
-        const sf::Vector2f rightEyeDelta = mousePosition - rightEye.position;
-        rightEye.rotation = atan2(rightEyeDelta.y, rightEyeDelta.x);
-        updateRightEye(rightEye);
-    }
-    else
-    {
-        rightEye.black.setPosition(mousePosition);
-    }
-}
-
-void redrawFrame(sf::RenderWindow &window, Eye &leftEye, Eye &rightEye)
-{
-    window.clear();
-    window.draw(leftEye.white);
-    window.draw(leftEye.black);
-    window.draw(rightEye.white);
-    window.draw(rightEye.black);
-    window.display();
+	sf::Event event;
+	while (window.pollEvent(event))
+	{
+		switch (event.type)
+		{
+		case sf::Event::Closed:
+			window.close();
+			break;
+		case sf::Event::MouseMoved:				
+			onMouseMove(event.mouseMove, mousePosition); 
+			break;
+		default:
+			break;
+		}
+	}
 }
 
 int main()
 {
-    constexpr unsigned WINDOW_WIDTH = 800;
-    constexpr unsigned WINDOW_HEIGHT = 600;
+	sf::ContextSettings settings;
+	settings.antialiasingLevel = 8;
+	sf::RenderWindow window(sf::VideoMode({WINDOW_WIDTH, WINDOW_HEIGHT}),
+							"These EYES see your cursor",
+							sf::Style::Default,
+							settings);
+	sf::Vector2f mousePosition;
 
-    sf::ContextSettings settings;
-    settings.antialiasingLevel = 8;
-    sf::RenderWindow window(
-        sf::VideoMode({WINDOW_WIDTH, WINDOW_HEIGHT}),
-        "Eyes follows mouse", sf::Style::Default, settings);
-
-    Eye leftEye;
-    Eye rightEye;
-    sf::Vector2f mousePosition;
-
-    initEye(leftEye, rightEye);
-
-    while (window.isOpen())
-    {
-        pollEvents(window, mousePosition);
-        update(mousePosition, leftEye, rightEye);
-        redrawFrame(window, leftEye, rightEye);
-    }
+	Eye eyeLeft;
+	Eye eyeRight;
+	eyeLeft.init(sf::Vector2f({WINDOW_WIDTH/2 - (WidthEye+(DistanceBetweenEye/2)), WINDOW_HEIGHT/2}),sf::Vector2f({WidthEye, HeightEye}));
+	eyeRight.init(sf::Vector2f({WINDOW_WIDTH/2 + (WidthEye+(DistanceBetweenEye/2)), WINDOW_HEIGHT/2}),sf::Vector2f({WidthEye, HeightEye}));
+	
+	while (window.isOpen())
+	{
+		pollEvents(window, mousePosition);
+		eyeLeft.update(mousePosition);
+		eyeRight.update(mousePosition);
+		window.clear();
+		eyeLeft.draw(window);
+		eyeRight.draw(window);
+		window.display();
+	}
 }
