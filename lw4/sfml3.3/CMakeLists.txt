@@ -1,5 +1,5 @@
 add_executable(sfml3.3 main.cpp)
-
+cmake_minimum_required(VERSION 3.8)
 set(SFML_STATIC_LIBRARIES TRUE)
 
 find_package(Freetype REQUIRED)

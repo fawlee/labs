@@ -1,107 +1,122 @@
 #include <SFML/Graphics.hpp>
-#include <SFML/System.hpp>
 #include <cmath>
 #include <iostream>
 
-float toGrees(float radians){ return float(double(radians) * 180.0 / M_PI); }
-sf::Vector2f relativePos(sf::Vector2f posRoot, sf::Vector2f absolPos){ return absolPos-posRoot; }
-
-constexpr float HeightEye = 100;			
-constexpr float WidthEye = 70;			 
-constexpr float RadiusPupil = 15;		 
-constexpr float DistBetEyeAndPupil = 20; 
-constexpr float DistanceBetweenEye = 50; 
-constexpr float Points = 100;			 
-constexpr unsigned WINDOW_WIDTH = 800;   
-constexpr unsigned WINDOW_HEIGHT = 600; 
-const sf::Color ColorApple = sf::Color(0xFF, 0x0, 0x0);  
-const sf::Color ColorPupil = sf::Color(0x00, 0x0, 0x0);  
-
-struct Eye{
-	sf::ConvexShape eyeApple;
-	sf::CircleShape eyePupil; 
-	sf::Vector2f position;	
-
-	void init(sf::Vector2f position,sf::Vector2f size);
-	void draw(sf::RenderWindow &window);
-	void update(sf::Vector2f &mousePosition);
-private:
-	float calcAngle(sf::Vector2f relativeMousePosition);
-	int mouseOnEye(sf::Vector2f relativeMousePosition, float angle);
+struct EyeR
+{
+	sf::ConvexShape ellipseR;
+	sf::ConvexShape eyeBallR;
+	sf::Vector2f position;
+	float rotation = 0;
 };
 
-int Eye::mouseOnEye(sf::Vector2f relativeMousePosition, float angle)
+struct EyeL
 {
-	float x1 = (HeightEye-DistBetEyeAndPupil) * std::cos(angle);
-	float x2 = (HeightEye-DistBetEyeAndPupil) * std::cos(angle+M_PI);
-	float y1 = (HeightEye-DistBetEyeAndPupil) * std::sin(angle);
-	float y2 = (WidthEye-DistBetEyeAndPupil) * std::sin(angle+M_PI);
-
-	if ((std::max(x1, x2) >= relativeMousePosition.x) &&
-		(std::min(x1, x2) <= relativeMousePosition.x) &&
-		(std::max(y1, y2) >= relativeMousePosition.y) && 
-		(std::min(y1, y2) <= relativeMousePosition.y))
-	{return 1;}
-	else
-	{return 0;}
-}
-
-float Eye::calcAngle(sf::Vector2f relativeMousePosition)
-{
-	const sf::Vector2f modifiedDelta = sf::Vector2f({relativeMousePosition.x / (WidthEye-DistBetEyeAndPupil), relativeMousePosition.y / (HeightEye-DistBetEyeAndPupil)});
-	return std::atan2(modifiedDelta.y, modifiedDelta.x);
+	sf::ConvexShape ellipseL;
+	sf::ConvexShape eyeBallL;
+	sf::Vector2f position;
+	float rotation = 0;
 };
 
-void Eye::update(sf::Vector2f &mousePosition)
+sf::Vector2f toEuclidean(float radiusX, float radiusY, float angle)
 {
-	const sf::Vector2f delta = relativePos(this->position, mousePosition);
-	float angle = calcAngle(delta);
-	if (0 == this->mouseOnEye(delta, angle))
+	return {
+		radiusX * std::cos(angle),
+		radiusY * std::sin(angle)};
+}
+
+float inside(const sf::Vector2f &mousePosition, const sf::Vector2f &center, float X, float Y)
+{
+	return (std::pow((mousePosition.x - center.x), 2) + std::pow((mousePosition.y - center.y), 2));
+}
+
+void updateEyeRElements(EyeR &eyeR)
+{
+	eyeR.ellipseR.setPosition(eyeR.position);
+
+	const sf::Vector2f headOffset = toEuclidean(20, 40, eyeR.rotation);
+	eyeR.eyeBallR.setPosition(eyeR.position + headOffset);
+}
+
+void initEyeR(EyeR &eyeR)
+{
+	constexpr int pointCount = 200;
+	eyeR.position = {340, 300};
+
+	const sf::Vector2f ellipseRadius = {40.f, 80.f};
+	eyeR.ellipseR.setFillColor(sf::Color(0xFF, 0xFF, 0xFF));
+	eyeR.ellipseR.setPointCount(pointCount);
+	for (int pointNo = 0; pointNo < pointCount; ++pointNo)
 	{
-		sf::Vector2f pepe = sf::Vector2f{
-			(WidthEye-DistBetEyeAndPupil) * std::cos(angle),
-			(HeightEye-DistBetEyeAndPupil) * std::sin(angle)
-		};
-		this->eyePupil.setPosition(this->position + pepe);
+		float angle = float(2 * M_PI * pointNo) / float(pointCount);
+		sf::Vector2f point = {
+			ellipseRadius.x * std::sin(angle),
+			ellipseRadius.y * std::cos(angle)};
+		eyeR.ellipseR.setPoint(pointNo, point);
 	}
-	else
+
+	const sf::Vector2f eyeBallRadius = {10.f, 20.f};
+	eyeR.eyeBallR.setFillColor(sf::Color(0x0, 0x0, 0x0));
+	eyeR.eyeBallR.setPointCount(pointCount);
+	for (int pointNo = 0; pointNo < pointCount; ++pointNo)
 	{
-		this->eyePupil.setPosition(mousePosition);
+		float angle = float(2 * M_PI * pointNo) / float(pointCount);
+		sf::Vector2f point = {
+			eyeBallRadius.x * std::sin(angle),
+			eyeBallRadius.y * std::cos(angle)};
+		eyeR.eyeBallR.setPoint(pointNo, point);
 	}
+
+	updateEyeRElements(eyeR);
 }
 
-void Eye::draw(sf::RenderWindow &window)
+void updateEyeLElements(EyeL &eyeL)
 {
-	window.draw(eyeApple);
-	window.draw(eyePupil);
+	eyeL.ellipseL.setPosition(eyeL.position);
+
+	const sf::Vector2f headOffset = toEuclidean(20, 40, eyeL.rotation);
+	eyeL.eyeBallL.setPosition(eyeL.position + headOffset);
 }
 
-void Eye::init(sf::Vector2f position,sf::Vector2f size)
+void initEyeL(EyeL &eyeL)
 {
-	this->eyeApple.setPosition(position); 
-	this->position = position;		
-	this->eyeApple.setPointCount(Points); 
-	for (int pointNo = 0; pointNo < Points; ++pointNo)
+	constexpr int pointCount = 200;
+	eyeL.position = {460, 300};
+
+	const sf::Vector2f ellipseRadius = {40.f, 80.f};
+	eyeL.ellipseL.setFillColor(sf::Color(0xFF, 0xFF, 0xFF));
+	eyeL.ellipseL.setPointCount(pointCount);
+	for (int pointNo = 0; pointNo < pointCount; ++pointNo)
 	{
-		float angle = float(2 * M_PI * pointNo) / float(Points);	 
-		sf::Vector2f point = sf::Vector2f{							 
-			size.x * std::cos(angle),  
-			size.y * std::sin(angle)}; 
-		this->eyeApple.setPoint(pointNo, point);
+		float angle = float(2 * M_PI * pointNo) / float(pointCount);
+		sf::Vector2f point = {
+			ellipseRadius.x * std::sin(angle),
+			ellipseRadius.y * std::cos(angle)};
+		eyeL.ellipseL.setPoint(pointNo, point);
 	}
-	this->eyePupil.setRadius(RadiusPupil);
-	this->eyePupil.setOrigin(RadiusPupil, RadiusPupil);									  
-	this->eyePupil.setPosition(position);
-	this->eyeApple.setFillColor(ColorApple);
-	this->eyePupil.setFillColor(ColorPupil);
+
+	const sf::Vector2f eyeBallRadius = {10.f, 20.f};
+	eyeL.eyeBallL.setFillColor(sf::Color(0x0, 0x0, 0x0));
+	eyeL.eyeBallL.setPointCount(pointCount);
+	for (int pointNo = 0; pointNo < pointCount; ++pointNo)
+	{
+		float angle = float(2 * M_PI * pointNo) / float(pointCount);
+		sf::Vector2f point = {
+			eyeBallRadius.x * std::sin(angle),
+			eyeBallRadius.y * std::cos(angle)};
+		eyeL.eyeBallL.setPoint(pointNo, point);
+	}
+
+	updateEyeLElements(eyeL);
 }
 
-void onMouseMove(const sf::Event::MouseMoveEvent &event, sf::Vector2f &mousePosition) 
+void onMouseMove(const sf::Event::MouseMoveEvent &event, sf::Vector2f &mousePosition)
 {
-	mousePosition = {float(event.x), float(event.y)}; 
+	std::cout << "mouse x=" << event.x << ", y=" << event.y << std::endl;
+	mousePosition = {float(event.x), float(event.y)};
 }
 
-void pollEvents(sf::RenderWindow &window, sf::Vector2f &mousePosition) 
+void pollEvents(sf::RenderWindow &window, sf::Vector2f &mousePosition)
 {
 	sf::Event event;
 	while (window.pollEvent(event))
@@ -111,8 +126,8 @@ void pollEvents(sf::RenderWindow &window, sf::Vector2f &mousePosition)
 		case sf::Event::Closed:
 			window.close();
 			break;
-		case sf::Event::MouseMoved:				
-			onMouseMove(event.mouseMove, mousePosition); 
+		case sf::Event::MouseMoved:
+			onMouseMove(event.mouseMove, mousePosition);
 			break;
 		default:
 			break;
@@ -120,29 +135,80 @@ void pollEvents(sf::RenderWindow &window, sf::Vector2f &mousePosition)
 	}
 }
 
+void update(const sf::Vector2f &mousePosition, EyeR &eyeR, EyeL &eyeL)
+{
+	const sf::Vector2f rotationRadius = {20.f, 40.f};
+	const sf::Vector2f deltaR = mousePosition - eyeR.ellipseR.getPosition();
+	const sf::Vector2f deltaL = mousePosition - eyeL.ellipseL.getPosition();
+	float angleR = atan2(deltaR.y, deltaR.x);
+	float angleL = atan2(deltaL.y, deltaL.x);
+
+	const float insideEyeR = inside(mousePosition,
+									eyeR.ellipseR.getPosition(),
+									rotationRadius.x,
+									rotationRadius.y);
+
+	const float insideEyeL = inside(mousePosition,
+									eyeL.ellipseL.getPosition(),
+									rotationRadius.x,
+									rotationRadius.y);
+
+	float R = std::pow(rotationRadius.x * std::cos(angleR), 2) + std::pow(rotationRadius.y * std::sin(angleR), 2);
+	float L = std::pow(rotationRadius.x * std::cos(angleL), 2) + std::pow(rotationRadius.y * std::sin(angleL), 2);
+	if (insideEyeR > R)
+	{
+		const sf::Vector2f deltaR = mousePosition - eyeR.position;
+		eyeR.rotation = atan2(deltaR.y, deltaR.x);
+		updateEyeRElements(eyeR);
+	}
+	else
+	{
+		eyeR.eyeBallR.setPosition(mousePosition);
+	}
+
+	if (insideEyeL > L)
+	{
+		const sf::Vector2f deltaL = mousePosition - eyeL.position;
+		eyeL.rotation = atan2(deltaL.y, deltaL.x);
+		updateEyeLElements(eyeL);
+	}
+	else
+	{
+		eyeL.eyeBallL.setPosition(mousePosition);
+	}
+}
+
+void redrawFrame(sf::RenderWindow &window, EyeR &eyeR, EyeL &eyeL)
+{
+	window.clear();
+	window.draw(eyeR.ellipseR);
+	window.draw(eyeR.eyeBallR);
+	window.draw(eyeL.ellipseL);
+	window.draw(eyeL.eyeBallL);
+	window.display();
+}
+
 int main()
 {
+	constexpr unsigned WINDOW_WIDTH = 800;
+	constexpr unsigned WINDOW_HEIGHT = 600;
+
 	sf::ContextSettings settings;
 	settings.antialiasingLevel = 8;
-	sf::RenderWindow window(sf::VideoMode({WINDOW_WIDTH, WINDOW_HEIGHT}),
-							"These EYES see your cursor",
-							sf::Style::Default,
-							settings);
+	sf::RenderWindow window(
+		sf::VideoMode({WINDOW_WIDTH, WINDOW_HEIGHT}),
+		"Eyes follows mouse", sf::Style::Default, settings);
+
+	EyeR eyeR;
+	EyeL eyeL;
 	sf::Vector2f mousePosition;
 
-	Eye eyeLeft;
-	Eye eyeRight;
-	eyeLeft.init(sf::Vector2f({WINDOW_WIDTH/2 - (WidthEye+(DistanceBetweenEye/2)), WINDOW_HEIGHT/2}),sf::Vector2f({WidthEye, HeightEye}));
-	eyeRight.init(sf::Vector2f({WINDOW_WIDTH/2 + (WidthEye+(DistanceBetweenEye/2)), WINDOW_HEIGHT/2}),sf::Vector2f({WidthEye, HeightEye}));
-	
+	initEyeR(eyeR);
+	initEyeL(eyeL);
 	while (window.isOpen())
 	{
 		pollEvents(window, mousePosition);
-		eyeLeft.update(mousePosition);
-		eyeRight.update(mousePosition);
-		window.clear();
-		eyeLeft.draw(window);
-		eyeRight.draw(window);
-		window.display();
+		update(mousePosition, eyeR, eyeL);
+		redrawFrame(window, eyeR, eyeL);
 	}
 }
