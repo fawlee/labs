@@ -1,77 +1,113 @@
-#include <SFML\Graphics.hpp>
-#include <SFML\Window.hpp>
+#include <SFML/Graphics.hpp>
 #include <cmath>
 #include <iostream>
-struct Eye
+
+struct EyeR
 {
-    sf::ConvexShape white;
-    sf::ConvexShape black;
+    sf::ConvexShape ellipseR;
+    sf::ConvexShape eyeBallR;
     sf::Vector2f position;
     float rotation = 0;
 };
 
-sf::Vector2f toEucledian(float x, float y, float angle)
+struct EyeL
 {
-    return {x * std::cos(angle), y * std::sin(angle)};
+    sf::ConvexShape ellipseL;
+    sf::ConvexShape eyeBallL;
+    sf::Vector2f position;
+    float rotation = 0;
+};
+
+sf::Vector2f toEuclidean(float radiusX, float radiusY, float angle)
+{
+    return {
+        radiusX * std::cos(angle),
+        radiusY * std::sin(angle)};
 }
 
-void updateElements(Eye &leftEye, Eye &rightEye)
+void updateEyeRElements(EyeR &eyeR)
 {
-    const sf::Vector2f rotationRadius = {30.f, 50.f};
+    eyeR.ellipseR.setPosition(eyeR.position);
 
-    const sf::Vector2f whiteLeftEyeOffset = toEucledian(rotationRadius.x, rotationRadius.y, leftEye.rotation);
-    leftEye.black.setPosition(leftEye.position + whiteLeftEyeOffset);
-
-    const sf::Vector2f whiteRightEyeOffset = toEucledian(rotationRadius.x, rotationRadius.y, rightEye.rotation);
-    rightEye.black.setPosition(rightEye.position + whiteRightEyeOffset);
+    const sf::Vector2f headOffset = toEuclidean(20, 40, eyeR.rotation);
+    eyeR.eyeBallR.setPosition(eyeR.position + headOffset);
 }
 
-void initEye(Eye &leftEye, Eye &rightEye)
+void initEyeR(EyeR &eyeR)
 {
-    sf::Vector2f whiteRadius = {50.f, 100.f};
-    sf::Vector2f blackRadius = {10.f, 20.f};
     constexpr int pointCount = 200;
+    eyeR.position = {340, 300};
 
-    leftEye.position = {300, 300};
-    rightEye.position = {500, 300};
-
-    leftEye.white.setFillColor(sf::Color(255, 255, 255));
-    leftEye.white.setPointCount(pointCount);
-    leftEye.white.setPosition(leftEye.position);
-    rightEye.white.setFillColor(sf::Color(255, 255, 255));
-    rightEye.white.setPointCount(pointCount);
-    rightEye.white.setPosition(rightEye.position);
+    const sf::Vector2f ellipseRadius = {40.f, 80.f};
+    eyeR.ellipseR.setFillColor(sf::Color(0xFF, 0xFF, 0xFF));
+    eyeR.ellipseR.setPointCount(pointCount);
     for (int pointNo = 0; pointNo < pointCount; ++pointNo)
     {
         float angle = float(2 * M_PI * pointNo) / float(pointCount);
         sf::Vector2f point = {
-            whiteRadius.x * std::sin(angle),
-            whiteRadius.y * std::cos(angle)};
-        leftEye.white.setPoint(pointNo, point);
-        rightEye.white.setPoint(pointNo, point);
+            ellipseRadius.x * std::sin(angle),
+            ellipseRadius.y * std::cos(angle)};
+        eyeR.ellipseR.setPoint(pointNo, point);
     }
 
-    leftEye.black.setPointCount(pointCount);
-    leftEye.black.setFillColor(sf::Color(0, 0, 0));
-    rightEye.black.setPointCount(pointCount);
-    rightEye.black.setFillColor(sf::Color(0, 0, 0));
+    const sf::Vector2f eyeBallRadius = {10.f, 20.f};
+    eyeR.eyeBallR.setFillColor(sf::Color(0x0, 0x0, 0x0));
+    eyeR.eyeBallR.setPointCount(pointCount);
     for (int pointNo = 0; pointNo < pointCount; ++pointNo)
     {
         float angle = float(2 * M_PI * pointNo) / float(pointCount);
         sf::Vector2f point = {
-            blackRadius.x * std::sin(angle),
-            blackRadius.y * std::cos(angle)};
-        leftEye.black.setPoint(pointNo, point);
-        rightEye.black.setPoint(pointNo, point);
+            eyeBallRadius.x * std::sin(angle),
+            eyeBallRadius.y * std::cos(angle)};
+        eyeR.eyeBallR.setPoint(pointNo, point);
     }
 
-    updateElements(leftEye, rightEye);
+    updateEyeRElements(eyeR);
+}
+
+void updateEyeLElements(EyeL &eyeL)
+{
+    eyeL.ellipseL.setPosition(eyeL.position);
+
+    const sf::Vector2f headOffset = toEuclidean(20, 40, eyeL.rotation);
+    eyeL.eyeBallL.setPosition(eyeL.position + headOffset);
+}
+
+void initEyeL(EyeL &eyeL)
+{
+    constexpr int pointCount = 200;
+    eyeL.position = {460, 300};
+
+    const sf::Vector2f ellipseRadius = {40.f, 80.f};
+    eyeL.ellipseL.setFillColor(sf::Color(0xFF, 0xFF, 0xFF));
+    eyeL.ellipseL.setPointCount(pointCount);
+    for (int pointNo = 0; pointNo < pointCount; ++pointNo)
+    {
+        float angle = float(2 * M_PI * pointNo) / float(pointCount);
+        sf::Vector2f point = {
+            ellipseRadius.x * std::sin(angle),
+            ellipseRadius.y * std::cos(angle)};
+        eyeL.ellipseL.setPoint(pointNo, point);
+    }
+
+    const sf::Vector2f eyeBallRadius = {10.f, 20.f};
+    eyeL.eyeBallL.setFillColor(sf::Color(0x0, 0x0, 0x0));
+    eyeL.eyeBallL.setPointCount(pointCount);
+    for (int pointNo = 0; pointNo < pointCount; ++pointNo)
+    {
+        float angle = float(2 * M_PI * pointNo) / float(pointCount);
+        sf::Vector2f point = {
+            eyeBallRadius.x * std::sin(angle),
+            eyeBallRadius.y * std::cos(angle)};
+        eyeL.eyeBallL.setPoint(pointNo, point);
+    }
+
+    updateEyeLElements(eyeL);
 }
 
 void onMouseMove(const sf::Event::MouseMoveEvent &event, sf::Vector2f &mousePosition)
 {
     std::cout << "mouse x=" << event.x << ", y=" << event.y << std::endl;
-
     mousePosition = {float(event.x), float(event.y)};
 }
 
@@ -94,24 +130,24 @@ void pollEvents(sf::RenderWindow &window, sf::Vector2f &mousePosition)
     }
 }
 
-void update(const sf::Vector2f &mousePosition, Eye &leftEye, Eye &rightEye)
+void update(const sf::Vector2f &mousePosition, EyeR &eyeR, EyeL &eyeL)
 {
-    const sf::Vector2f leftEyeDelta = mousePosition - leftEye.position;
-    leftEye.rotation = atan2(leftEyeDelta.y, leftEyeDelta.x);
+    const sf::Vector2f deltaR = mousePosition - eyeR.position;
+    eyeR.rotation = atan2(deltaR.y, deltaR.x);
+    updateEyeRElements(eyeR);
 
-    const sf::Vector2f rightEyeDelta = mousePosition - rightEye.position;
-    rightEye.rotation = atan2(rightEyeDelta.y, rightEyeDelta.x);
-
-    updateElements(leftEye, rightEye);
+    const sf::Vector2f deltaL = mousePosition - eyeL.position;
+    eyeL.rotation = atan2(deltaL.y, deltaL.x);
+    updateEyeLElements(eyeL);
 }
 
-void redrawFrame(sf::RenderWindow &window, Eye &leftEye, Eye &rightEye)
+void redrawFrame(sf::RenderWindow &window, EyeR &eyeR, EyeL &eyeL)
 {
     window.clear();
-    window.draw(leftEye.white);
-    window.draw(leftEye.black);
-    window.draw(rightEye.white);
-    window.draw(rightEye.black);
+    window.draw(eyeR.ellipseR);
+    window.draw(eyeR.eyeBallR);
+    window.draw(eyeL.ellipseL);
+    window.draw(eyeL.eyeBallL);
     window.display();
 }
 
@@ -120,25 +156,22 @@ int main()
     constexpr unsigned WINDOW_WIDTH = 800;
     constexpr unsigned WINDOW_HEIGHT = 600;
 
-    const sf::Vector2f whiteRadius = {10.f, 30.f};
-    const sf::Vector2f blackRadius = {4.f, 10.f};
-
     sf::ContextSettings settings;
     settings.antialiasingLevel = 8;
     sf::RenderWindow window(
         sf::VideoMode({WINDOW_WIDTH, WINDOW_HEIGHT}),
-        "Eyes follows mouse", sf::Style::Default, settings);
+        "Arrow follows mouse", sf::Style::Default, settings);
 
-    Eye leftEye;
-    Eye rightEye;
+    EyeR eyeR;
+    EyeL eyeL;
     sf::Vector2f mousePosition;
 
-    initEye(leftEye, rightEye);
-
+    initEyeR(eyeR);
+    initEyeL(eyeL);
     while (window.isOpen())
     {
         pollEvents(window, mousePosition);
-        update(mousePosition, leftEye, rightEye);
-        redrawFrame(window, leftEye, rightEye);
+        update(mousePosition, eyeR, eyeL);
+        redrawFrame(window, eyeR, eyeL);
     }
 }
